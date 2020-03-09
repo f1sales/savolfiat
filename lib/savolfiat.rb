@@ -5,9 +5,46 @@ require "f1sales_custom/source"
 require "f1sales_custom/hooks"
 require "f1sales_helpers"
 require "json"
+gem 'http'
+
 
 module Savolfiat
   class Error < StandardError; end
+
+  class F1SalesCustom::Hooks::Lead 
+
+    def self.switch_source(lead)
+
+      if ENV['STORE_ID'] != 'savolfiatscs' && lead.source.name.downcase.include?('facebook') && lead.message.downcase.include?('são_caetano')
+        customer = lead.customer
+
+        HTTP.post(
+          'https://savolfiatscs.f1sales.org/integrations/leads',
+          json: {
+            lead: {
+              message: lead.message,
+              customer: {
+                name: customer.name,
+                email: customer.email,
+                phone: customer.phone,
+              },
+              product: {
+                name: lead.product.name
+              },
+              source: {
+                name: lead.source.name
+              }
+            }
+          },
+        )
+
+        return nil
+      end
+
+      return lead.source.name
+    end
+  end
+
   class F1SalesCustom::Email::Source 
     def self.all
       [
